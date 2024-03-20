@@ -75,9 +75,9 @@ class Circle:
         if keys[pygame.K_f] and (self.p1.highlighted or self.p2.highlighted or self.center.highlighted) and cooldown == 0:
             #if f is pressed and any of the points are highlighted, it will be flipped.
             cooldown = COOLDOWNVAL
-            temp = self.p1
-            self.p1 = self.p2
-            self.p2 = temp
+            temp = self.p1.pos
+            self.p1.pos = self.p2.pos
+            self.p2.pos = temp
 
         mouse = Vector2(pygame.mouse.get_pos())
         if self.p1.grabbed: #handles updating the p1 if it's grabbed
@@ -103,30 +103,30 @@ class Circle:
 
     def draw(self, screen, camera):
         #figures out what  the proper quadrant is based on some trig. Fuck this.
-        # degree1 = math.degrees(math.atan2(self.p1.pos.y - self.center.pos.y, self.p1.pos.x - self.center.pos.x))
-        # degree2 = math.degrees(math.atan2(self.p2.pos.y - self.center.pos.y, self.p2.pos.x - self.center.pos.x))
-        # degree1 += 0 if degree1 >= 0 else 360
-        # degree2 += 0 if degree2 >= 0 else 360
-        # minDegrees = degree1 if degree1 < degree2 else degree2
-        # maxDegrees = degree1 if degree1 > degree2 else degree2
+        degree1 = math.degrees(math.atan2(self.p1.pos.y - self.center.pos.y, self.p1.pos.x - self.center.pos.x))
+        degree2 = math.degrees(math.atan2(self.p2.pos.y - self.center.pos.y, self.p2.pos.x - self.center.pos.x))
+        degree1 += 0 if degree1 >= 0 else 360
+        degree2 += 0 if degree2 >= 0 else 360
+        minDegrees = degree1 if degree1 < degree2 else degree2
+        maxDegrees = degree1 if degree1 > degree2 else degree2
         
-        # if minDegrees == 0 and maxDegrees == 270:
-        #     minDegrees = 270
-        #     maxDegrees = 360
-
-        #figures out what the proper quadrant it is based on brute force.
-        if self.p1.pos.y >= 0 and self.p2.pos.x >= 0:
-            minDegrees = 0
-            maxDegrees = 90
-        elif self.p1.pos.y >= 0 and self.p2.pos.x < 0:
-            minDegrees = 90
-            maxDegrees = 180
-        elif self.p1.pos.y < 0 and self.p2.pos.x < 0:
-            minDegrees = 180
-            maxDegrees = 270
-        elif self.p1.pos.y < 0 and self.p2.pos.x >= 0:
+        if minDegrees == 0 and maxDegrees == 270:
             minDegrees = 270
             maxDegrees = 360
+
+        #figures out what the proper quadrant it is based on brute force.
+        # if self.p1.pos.y >= 0 and self.p2.pos.x >= 0:
+        #     minDegrees = 0
+        #     maxDegrees = 90
+        # elif self.p1.pos.y >= 0 and self.p2.pos.x < 0:
+        #     minDegrees = 90
+        #     maxDegrees = 180
+        # elif self.p1.pos.y < 0 and self.p2.pos.x < 0:
+        #     minDegrees = 180
+        #     maxDegrees = 270
+        # elif self.p1.pos.y < 0 and self.p2.pos.x >= 0:
+        #     minDegrees = 270
+        #     maxDegrees = 360
 
         #idk
         if self.p1.grabbed or self.p2.grabbed or self.center.grabbed:
@@ -150,9 +150,9 @@ quarterCircles = []
 while not doExit:
     if cooldown > 0:
         cooldown -= delta
-        print(cooldown)
     else:
         cooldown = 0
+
     delta = clock.tick(FPS)/1000
     screen.fill(BG_COLOR)
     for event in pygame.event.get():
