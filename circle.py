@@ -17,7 +17,7 @@ class Point:
 	#grabbed points is a list of all points that are held. This is to prevent holding more than one point when adjusting all points.
 	def update(self, screen, camera, grabbedPoints): #draw : bool = True):
 		mousePos = Vector2(pygame.mouse.get_pos())
-		if math.dist(mousePos, self.pos + camera) <= 5 and len(grabbedPoints) < 1: #if the mouse is in range to grab this point and isn't already grabbing a point.
+		if math.dist(mousePos, self.pos - camera) <= 5 and len(grabbedPoints) < 1: #if the mouse is in range to grab this point and isn't already grabbing a point.
 			self.highlighted = True
 			if pygame.mouse.get_pressed(3)[0] and not self.grabbed: #if the point is clicked on.
 				self.grabbed = True
@@ -37,12 +37,12 @@ class Point:
 			pygame.draw.circle(screen, self.color, self.pos, self.size) #draws to self.pos, which == mousePos
 			if not pygame.mouse.get_pressed(3)[0]: #when lmb is released. (only calls once)
 				self.grabbed = False
-				self.pos = mousePos - camera #position is updated
+				self.pos = mousePos + camera #position is updated
 				self.staticPos = self.pos #updates staticPos
 				grabbedPoints.remove(self) #removed from list of held points.
 		else:
 			#if the point isn't being held by the mouse, then it's position is set to it's position in the world space.
-			pygame.draw.circle(screen, self.color, self.pos + camera, self.size)
+			pygame.draw.circle(screen, self.color, self.pos - camera, self.size)
 	
 	def updateStaticPos(self):
 		self.staticPos = self.pos
@@ -70,17 +70,22 @@ class Circle:
 	'''
 	def update(self, screen, camera, grabbedPoints):
 		if self.cPoint.grabbed:
-			#updatees each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
+			#updates each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
 			self.xPoint.pos = (self.xPoint.staticPos - self.cPoint.staticPos) + self.cPoint.pos
 			self.yPoint.pos = (self.yPoint.staticPos - self.cPoint.staticPos) + self.cPoint.pos
+			#When cPoint is released. This is only called once.
 			if not pygame.mouse.get_pressed(3)[0]:
+				#updates the static position of x and y Points.
 				self.xPoint.staticPos = self.xPoint.pos
 				self.yPoint.staticPos = self.yPoint.pos
+		#updates x and y points and draws them to the screen.
 		self.xPoint.update(screen, camera, grabbedPoints)
 		self.yPoint.update(screen, camera, grabbedPoints)
 
+		#updates the cPoint to xPoint.x and yPoint.y only if xPoint or yPoint are grabbed. 
 		if self.xPoint.grabbed or self.yPoint.grabbed:
 			self.cPoint.pos = Vector2(self.xPoint.pos.x, self.yPoint.pos.y)
 			self.cPoint.updateStaticPos()
 
+		#updates cPoint and draws to the screen.
 		self.cPoint.update(screen, camera, grabbedPoints)
