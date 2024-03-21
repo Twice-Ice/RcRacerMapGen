@@ -60,8 +60,8 @@ while not doExit:
 			tempPoints[i].pos = (tempPoints[i].staticPos - mainPoint.staticPos) + mainPoint.pos #updatees tempPoints to it's relative position before mainPoint was grabbed and adds the mouse (or, mainPoint.pos)
 			if not pygame.mouse.get_pressed(3)[0]: #when mainPoint is released. This only happens once.
 				tempPoints[i].staticPos = tempPoints[i].pos #updates the static position of the other points.
-		tempPoints[i].update(screen, camera, mouseVel, grabbedPoints)
-	mainPoint.update(screen, camera, mouseVel, grabbedPoints) #this has to be below the update calls of the other points.
+		tempPoints[i].update(screen, camera, grabbedPoints)
+	mainPoint.update(screen, camera, grabbedPoints) #this has to be below the update calls of the other points.
 
 	pygame.display.flip()
 	pygame.mouse.get_rel()
