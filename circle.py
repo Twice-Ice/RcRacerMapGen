@@ -48,6 +48,39 @@ class Point:
 		self.staticPos = self.pos
 
 
-# class Circle:
-# 	def __init__(self, pos, ):
-# 		self.pos = pos
+class Circle:
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 10):
+		self.pos = pos
+		self.iterations = iterations
+
+		self.cPoint = Point(self.pos, (0, 255, 0))
+		self.xPoint = Point(self.pos + Vector2(100, 0), (255, 0, 0))
+		self.yPoint = Point(self.pos + Vector2(0, 100), (0, 0, 255))
+
+		self.cPoint.pos = Vector2(self.xPoint.pos.x, self.yPoint.pos.y)
+		self.cPoint.updateStaticPos()
+
+	'''
+	So the way that positional stuff is controlled is that for all points other than the mainPoint, their position is just set to the mouse if they are grabbed.
+	When they are released, their position is updated to the world position of the mouse on screen. So, SS -> WS (Screen Space, World Space)
+
+	A similar setup is happening with the mainPoint. If it's grabbed, then it's position is just set to the mouse.
+	However, all other points have their relative positions stored, and then are moved to their relativePos + mainPoint.pos (mainPoint.pos == mouse)
+	When mainPoint is released though, the other point's staticPosition is updated to reflect that which was shown on screen while mainPoint.grabbed == True.
+	'''
+	def update(self, screen, camera, grabbedPoints):
+		if self.cPoint.grabbed:
+			#updatees each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
+			self.xPoint.pos = (self.xPoint.staticPos - self.cPoint.staticPos) + self.cPoint.pos
+			self.yPoint.pos = (self.yPoint.staticPos - self.cPoint.staticPos) + self.cPoint.pos
+			if not pygame.mouse.get_pressed(3)[0]:
+				self.xPoint.staticPos = self.xPoint.pos
+				self.yPoint.staticPos = self.yPoint.pos
+		self.xPoint.update(screen, camera, grabbedPoints)
+		self.yPoint.update(screen, camera, grabbedPoints)
+
+		if self.xPoint.grabbed or self.yPoint.grabbed:
+			self.cPoint.pos = Vector2(self.xPoint.pos.x, self.yPoint.pos.y)
+			self.cPoint.updateStaticPos()
+
+		self.cPoint.update(screen, camera, grabbedPoints)

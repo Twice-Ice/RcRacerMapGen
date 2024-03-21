@@ -1,7 +1,7 @@
 import pygame
 from pygame import Vector2
 from globals import SCREEN_X, SCREEN_Y, BG_COLOR, FPS, CD
-from circle import Point
+from circle import Point, Circle
 
 pygame.init
 
@@ -24,6 +24,8 @@ yPoint = Point(Vector2(mainPoint.pos.x, mainPoint.pos.y + 100), (0, 0, 255))
 mainPoint.pos = Vector2(xPoint.pos.x, yPoint.pos.y)
 mainPoint.updateStaticPos()
 print(mainPoint)
+
+mainCircle = Circle(Vector2(200, 200))
 
 while not doExit:
 	delta = clock.tick(FPS)/1000
@@ -83,6 +85,8 @@ while not doExit:
 		mainPoint.updateStaticPos()
 
 	mainPoint.update(screen, camera, grabbedPoints) #this has to be below the update calls of the other points.
+
+	mainCircle.update(screen, camera, grabbedPoints)
 
 	pygame.display.flip()
 	pygame.mouse.get_rel()
