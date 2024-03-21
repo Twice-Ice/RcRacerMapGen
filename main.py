@@ -47,7 +47,9 @@ while not doExit:
 	mainPoint.update(screen, camera, mouseVel, grabbedPoints)
 
 	for i in range(len(tempPoints)):
-		tempPoints[i].update(screen, camera, mouseVel, grabbedPoints, mainPoint.pos)
+		points = mainPoint.pos if mainPoint.grabbed else Vector2(0, 0)
+		tempPoints[i].update(screen, camera, mouseVel, grabbedPoints, points)
+		print(points)
 
 	pygame.display.flip()
 	pygame.mouse.get_rel()

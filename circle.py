@@ -13,7 +13,7 @@ class Point:
 		self.grabbed = False
 		self.highlighted = False
 	
-	def update(self, screen, camera, mouseVel, grabbedPoints, relativePos = Vector2(0, 0), mousePos = None, drawHere : bool = True):
+	def update(self, screen, camera, mouseVel, grabbedPoints, relativePos = Vector2(0, 0), mousePos = None): #draw : bool = True):
 		mousePos = pygame.mouse.get_pos() if mousePos == None else mousePos
 		if math.dist(mousePos, self.pos + camera) <= 5 and len(grabbedPoints) < 1:
 			# print(f"True, {mousePos}, {self.pos}, {camera}, {self.pos+camera}, {math.dist(mousePos, self.pos + camera)}, {len(grabbedPoints)}")
@@ -32,16 +32,27 @@ class Point:
 			self.size = 2
 
 		if self.grabbed:
-			self.pos += mouseVel
+			self.pos = mousePos
 			self.staticPos = self.pos
-			if not pygame.mouse.get_pressed(3)[0]:
+			pygame.draw.circle(screen, self.color, self.pos, self.size)
+			if not pygame.mouse.get_pressed(3)[0]: #when lmb is released. (only calls once)
 				self.grabbed = False
+				self.pos = mousePos - camera
+				print(self.pos, mousePos, camera)
 				grabbedPoints.remove(self)
-		
-		self.pos = self.staticPos + relativePos
+		else:
+			self.pos = self.staticPos + relativePos #ok so should only do this IF the main point is grabbed. otherwise don't do shit.
+			pygame.draw.circle(screen, self.color, self.pos + camera, self.size)
 
-		if drawHere:
-			self.draw(screen, camera)
+		#relativePos is the position of whatever you want the point to be relative to.
+		#staticPos is the position of the point when it was last grabbed.
 
-	def draw(self, screen, camera):
-		pygame.draw.circle(screen, self.color, self.pos + camera, self.size)
+		# if draw:
+		# 	if not self.grabbed:
+		# 		self.draw(screen, camera)
+		# 	elif self.grabbed:
+		# 		self.draw(screen, Vector2(0, 0))
+
+
+	# def draw(self, screen, camera):
+	# 	pygame.draw.circle(screen, self.color, self.pos + camera, self.size)
