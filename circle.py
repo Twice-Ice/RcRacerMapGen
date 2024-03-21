@@ -15,8 +15,8 @@ class Point:
 	
 	#staticPos is the position of the point when it was last grabbed.
 	#grabbed points is a list of all points that are held. This is to prevent holding more than one point when adjusting all points.
-	def update(self, screen, camera, grabbedPoints, mousePos = None): #draw : bool = True):
-		mousePos = pygame.mouse.get_pos() if mousePos == None else mousePos
+	def update(self, screen, camera, grabbedPoints): #draw : bool = True):
+		mousePos = Vector2(pygame.mouse.get_pos())
 		if math.dist(mousePos, self.pos + camera) <= 5 and len(grabbedPoints) < 1: #if the mouse is in range to grab this point and isn't already grabbing a point.
 			self.highlighted = True
 			if pygame.mouse.get_pressed(3)[0] and not self.grabbed: #if the point is clicked on.
@@ -43,3 +43,11 @@ class Point:
 		else:
 			#if the point isn't being held by the mouse, then it's position is set to it's position in the world space.
 			pygame.draw.circle(screen, self.color, self.pos + camera, self.size)
+	
+	def updateStaticPos(self):
+		self.staticPos = self.pos
+
+
+# class Circle:
+# 	def __init__(self, pos, ):
+# 		self.pos = pos

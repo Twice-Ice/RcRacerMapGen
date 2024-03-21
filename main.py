@@ -18,6 +18,11 @@ circles = []
 tempPoints = []
 
 mainPoint = Point(Vector2(SCREEN_X//2, SCREEN_Y//2), (0, 255, 0))
+xPoint = Point(Vector2(mainPoint.pos.x + 100, mainPoint.pos.y), (255, 0, 0))
+yPoint = Point(Vector2(mainPoint.pos.x, mainPoint.pos.y + 100), (0, 0, 255))
+#updates the mainPoint so that it's relative to the x and y points.
+mainPoint.pos = Vector2(xPoint.pos.x, yPoint.pos.y)
+mainPoint.updateStaticPos()
 print(mainPoint)
 
 while not doExit:
@@ -61,6 +66,22 @@ while not doExit:
 			if not pygame.mouse.get_pressed(3)[0]: #when mainPoint is released. This only happens once.
 				tempPoints[i].staticPos = tempPoints[i].pos #updates the static position of the other points.
 		tempPoints[i].update(screen, camera, grabbedPoints)
+
+	#same code as above but for preset points.
+	if mainPoint.grabbed:
+		xPoint.pos = (xPoint.staticPos - mainPoint.staticPos) + mainPoint.pos
+		yPoint.pos = (yPoint.staticPos - mainPoint.staticPos) + mainPoint.pos
+		if not pygame.mouse.get_pressed(3)[0]:
+			xPoint.staticPos = xPoint.pos
+			yPoint.staticPos = yPoint.pos
+	xPoint.update(screen, camera, grabbedPoints)
+	yPoint.update(screen, camera, grabbedPoints)
+
+	#if the xPoint or yPoint are grabbed, then the mainPoint.pos should be updated to be relative.
+	if xPoint.grabbed or yPoint.grabbed:
+		mainPoint.pos = Vector2(xPoint.pos.x, yPoint.pos.y)
+		mainPoint.updateStaticPos()
+
 	mainPoint.update(screen, camera, grabbedPoints) #this has to be below the update calls of the other points.
 
 	pygame.display.flip()
