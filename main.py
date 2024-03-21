@@ -18,6 +18,7 @@ circles = []
 tempPoints = []
 
 mainPoint = Point(Vector2(SCREEN_X//2, SCREEN_Y//2), (0, 255, 0))
+print(mainPoint)
 
 while not doExit:
 	delta = clock.tick(FPS)/1000
@@ -38,18 +39,29 @@ while not doExit:
 	if keys[pygame.K_c] and cooldown == 0:
 		cooldown = CD
 		tempPoints.append(Point(Vector2(pygame.mouse.get_pos()) - camera))
+		print(tempPoints[len(tempPoints)-1])
 		print("made a new point!")
 		#append a new circle.
 	
 	if pygame.mouse.get_pressed(3)[2]:
 		camera += mouseVel
 
-	mainPoint.update(screen, camera, mouseVel, grabbedPoints)
+	
+	'''
+	So the way that positional stuff is controlled is that for all points other than the mainPoint, their position is just set to the mouse if they are grabbed.
+	When they are released, their position is updated to the world position of the mouse on screen. So, SS -> WS (Screen Space, World Space)
 
+	A similar setup is happening with the mainPoint. If it's grabbed, then it's position is just set to the mouse.
+	However, all other points have their relative positions stored, and then are moved to their relativePos + mainPoint.pos (mainPoint.pos == mouse)
+	When mainPoint is released though, the other point's staticPosition is updated to reflect that which was shown on screen while mainPoint.grabbed == True.
+	'''
 	for i in range(len(tempPoints)):
-		points = mainPoint.pos if mainPoint.grabbed else Vector2(0, 0)
-		tempPoints[i].update(screen, camera, mouseVel, grabbedPoints, points)
-		print(points)
+		if mainPoint.grabbed:
+			tempPoints[i].pos = (tempPoints[i].staticPos - mainPoint.staticPos) + mainPoint.pos #updatees tempPoints to it's relative position before mainPoint was grabbed and adds the mouse (or, mainPoint.pos)
+			if not pygame.mouse.get_pressed(3)[0]: #when mainPoint is released. This only happens once.
+				tempPoints[i].staticPos = tempPoints[i].pos #updates the static position of the other points.
+		tempPoints[i].update(screen, camera, mouseVel, grabbedPoints)
+	mainPoint.update(screen, camera, mouseVel, grabbedPoints) #this has to be below the update calls of the other points.
 
 	pygame.display.flip()
 	pygame.mouse.get_rel()
