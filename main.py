@@ -52,7 +52,7 @@ while not doExit:
 		# #append a new circle.
 	
 	if pygame.mouse.get_pressed(3)[2]:
-		camera -= mouseVel
+		camera += mouseVel
 
 	
 	# '''
