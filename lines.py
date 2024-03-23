@@ -22,11 +22,12 @@ class Point:
 			if pygame.mouse.get_pressed(3)[0] and not self.grabbed: #if the point is clicked on.
 				self.grabbed = True
 				grabbedPoints.append(self) #adds itself to the list of all grabbed points.
+		elif not self.grabbed: #only will set self.highlighted to False if the point isn't grabbed AND the mouse isn't in range of the point.
+			self.highlighted = False
 
 		#if the mouse was close enough to activate the highlighted bool, then the point will be slightly larger.
 		#having the code seperate allows for the particle to appear highlighted even though it's not technically in distance because the mouse moves too fast.
 		if self.highlighted: 
-			self.highlighted = self.grabbed #this is to update self.highlighted in the case that the point is no longer grabbed.
 			self.size = 5 #size when held
 		else:
 			# self.size = math.dist(mousePos, self.pos + camera)
@@ -37,6 +38,7 @@ class Point:
 			pygame.draw.circle(screen, self.color, self.pos + camera, self.size) #draws to self.pos, which == mousePos
 			if not pygame.mouse.get_pressed(3)[0]: #when lmb is released. (only calls once)
 				self.grabbed = False
+				self.highlighted = False
 				self.pos = mousePos - camera #position is updated
 				self.staticPos = self.pos #updates staticPos
 				grabbedPoints.remove(self) #removed from list of held points.
@@ -52,6 +54,7 @@ class Circle:
 	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 10):
 		self.pos = pos
 		self.iterations = iterations
+		self.cooldown = 0
 
 		self.cPoint = Point(self.pos, (0, 255, 0))
 		self.xPoint = Point(self.pos + Vector2(100, 0), (255, 0, 0))
@@ -71,7 +74,24 @@ class Circle:
 	However, all other points have their relative positions stored, and then are moved to their relativePos + mainPoint.pos (mainPoint.pos == mouse)
 	When mainPoint is released though, the other point's staticPosition is updated to reflect that which was shown on screen while mainPoint.grabbed == True.
 	'''
-	def update(self, screen, camera, grabbedPoints):
+	def update(self, screen, delta, camera, grabbedPoints):
+		#updates self.cooldown
+		if self.cooldown > 0:
+			self.cooldown -= delta
+		else:
+			self.cooldown = 0
+
+		#flips the xPoint and yPoint if f is pressed
+		#this MUST happen before the points are updated. Otherwise the points update the next frame after this has happened and it looks weird.
+		keys = pygame.key.get_pressed()
+		if keys[pygame.K_f] and self.cooldown == 0 and (self.xPoint.highlighted or self.yPoint.highlighted or self.cPoint.highlighted):
+			self.cooldown = CD
+			tempPos = self.yPoint.pos
+			self.yPoint.pos = self.xPoint.pos
+			self.xPoint.pos = tempPos
+			self.yPoint.updateStaticPos()
+			self.xPoint.updateStaticPos()
+
 		if self.cPoint.grabbed:
 			#updates each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
 			self.xPoint.pos = self.xPoint.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
@@ -91,11 +111,7 @@ class Circle:
 			self.cPoint.pos = Vector2(self.xPoint.pos.x, self.yPoint.pos.y)
 			self.cPoint.updateStaticPos()
 
-		keys = pygame.key.get_pressed()
-		if keys[pygame.K_f] and (self.xPoint.highlighted or self.yPoint.highlighted or self.cPoint.highlighted):
-			print("FLIP!")
-		else:
-			print("noFlip")
+		
 
 		#draws all points along the quarter circle
 		#has to happen before the points update to avoid inconcistency issues.

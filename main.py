@@ -1,7 +1,7 @@
 import pygame
 from pygame import Vector2
 from globals import SCREEN_X, SCREEN_Y, BG_COLOR, FPS, CD
-from circle import Point, Circle
+from lines import Point, Circle
 
 pygame.init
 
@@ -86,8 +86,12 @@ while not doExit:
 	# 	mainPoint.updateStaticPos()
 
 	# mainPoint.update(screen, camera, grabbedPoints) #this has to be below the update calls of the other points.
-	for i in range(len(circles)):
-		circles[i].update(screen, camera, grabbedPoints)
+	for i in range(len(circles) - 1):
+		circles[i].update(screen, delta, camera, grabbedPoints)
+		#deletes the circle if any of it's points are highlighted and backspace or x is pressed.
+		if cooldown == 0 and (keys[pygame.K_BACKSPACE] or keys[pygame.K_x]) and (circles[i].cPoint.highlighted or circles[i].xPoint.highlighted or circles[i].yPoint.highlighted):
+			del circles[i]
+
 	# mainCircle.update(screen, camera, grabbedPoints)
 
 	pygame.display.flip()
