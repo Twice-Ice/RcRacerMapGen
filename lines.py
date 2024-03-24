@@ -4,8 +4,9 @@ import random
 from pygame import Vector2
 from globals import SCREEN_X, SCREEN_Y, CD
 
-def pointOnScreen(point, camera, size):
-	ssPoint = point + camera
+def pointOnScreen(pos, camera, size):
+	ssPoint = pos + camera #screen space point. Converts pos from ws to ss.
+	size = abs(size) #only ever should be a positive value.
 	if ssPoint.x + size > 0 and ssPoint.x - size < SCREEN_X and ssPoint.y + size > 0 and ssPoint.y - size < SCREEN_Y:
 		return True
 	else:
