@@ -165,7 +165,7 @@ while not doExit:
         quarterCircles.append(Circle(Vector2(pygame.mouse.get_pos()) - camera))
 
     if pygame.mouse.get_pressed(3)[2]:
-        camera += Vector2(0, 0)#pygame.mouse.get_rel()
+        camera += pygame.mouse.get_rel()
 
     for i in range(len(quarterCircles)):
         quarterCircles[i].update(screen, camera)

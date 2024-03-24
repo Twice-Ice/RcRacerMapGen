@@ -15,7 +15,6 @@ camera = Vector2(0, 0)
 mouseVel = pygame.mouse.get_rel()
 
 circles = []
-tempPoints = []
 
 # mainPoint = Point(Vector2(SCREEN_X//2, SCREEN_Y//2), (0, 255, 0))
 # xPoint = Point(Vector2(mainPoint.pos.x + 100, mainPoint.pos.y), (255, 0, 0))
@@ -34,65 +33,40 @@ while not doExit:
 		if event.type == pygame.QUIT:
 			doExit = True
 
+	#gets mouseVelocity to add to the camera if right click is pressed
 	mouseVel = pygame.mouse.get_rel()
 
-
+	#updates main.py cooldown
 	if cooldown > 0:
 		cooldown -= delta
 	else:
 		cooldown = 0
 
+	#creates a new circle at the mouse
 	keys = pygame.key.get_pressed()
 	if keys[pygame.K_c] and cooldown == 0:
 		cooldown = CD
 		circles.append(Circle(Vector2(pygame.mouse.get_pos()) - camera))
-		# tempPoints.append(Point(Vector2(pygame.mouse.get_pos()) - camera))
-		# print(tempPoints[len(tempPoints)-1])
-		# print("made a new point!")
-		# #append a new circle.
 	
+	#moves the camera
 	if pygame.mouse.get_pressed(3)[2]:
 		camera += mouseVel
-
 	
-	# '''
-	# So the way that positional stuff is controlled is that for all points other than the mainPoint, their position is just set to the mouse if they are grabbed.
-	# When they are released, their position is updated to the world position of the mouse on screen. So, SS -> WS (Screen Space, World Space)
-
-	# A similar setup is happening with the mainPoint. If it's grabbed, then it's position is just set to the mouse.
-	# However, all other points have their relative positions stored, and then are moved to their relativePos + mainPoint.pos (mainPoint.pos == mouse)
-	# When mainPoint is released though, the other point's staticPosition is updated to reflect that which was shown on screen while mainPoint.grabbed == True.
-	# '''
-	# for i in range(len(tempPoints)):
-	# 	if mainPoint.grabbed:
-	# 		tempPoints[i].pos = (tempPoints[i].staticPos - mainPoint.staticPos) + mainPoint.pos #updatees tempPoints to it's relative position before mainPoint was grabbed and adds the mouse (or, mainPoint.pos)
-	# 		if not pygame.mouse.get_pressed(3)[0]: #when mainPoint is released. This only happens once.
-	# 			tempPoints[i].staticPos = tempPoints[i].pos #updates the static position of the other points.
-	# 	tempPoints[i].update(screen, camera, grabbedPoints)
-
-	# #same code as above but for preset points.
-	# if mainPoint.grabbed:
-	# 	xPoint.pos = (xPoint.staticPos - mainPoint.staticPos) + mainPoint.pos
-	# 	yPoint.pos = (yPoint.staticPos - mainPoint.staticPos) + mainPoint.pos
-	# 	if not pygame.mouse.get_pressed(3)[0]:
-	# 		xPoint.staticPos = xPoint.pos
-	# 		yPoint.staticPos = yPoint.pos
-	# xPoint.update(screen, camera, grabbedPoints)
-	# yPoint.update(screen, camera, grabbedPoints)
-
-	# #if the xPoint or yPoint are grabbed, then the mainPoint.pos should be updated to be relative.
-	# if xPoint.grabbed or yPoint.grabbed:
-	# 	mainPoint.pos = Vector2(xPoint.pos.x, yPoint.pos.y)
-	# 	mainPoint.updateStaticPos()
-
-	# mainPoint.update(screen, camera, grabbedPoints) #this has to be below the update calls of the other points.
-	for i in range(len(circles) - 1):
-		circles[i].update(screen, delta, camera, grabbedPoints)
-		#deletes the circle if any of it's points are highlighted and backspace or x is pressed.
-		if cooldown == 0 and (keys[pygame.K_BACKSPACE] or keys[pygame.K_x]) and (circles[i].cPoint.highlighted or circles[i].xPoint.highlighted or circles[i].yPoint.highlighted):
-			del circles[i]
-
-	# mainCircle.update(screen, camera, grabbedPoints)
+	#draws and updates all circles
+	for i in range(0, len(circles)):
+		'''
+		More detailed for next line:
+		circles = [0, 1, 2]
+		as counting through i and len(circles), circles[1] is deleted.
+		this leaves the table as:
+		circles = [0, 2] but then the max of i is still 2 instead of the now updated 1.
+		the following line of code would just not go into the next spot in the table if it doesn't exist anymore.
+		'''
+		if i < len(circles): # this line prevents the case where a circles is deleted and then i < len(circles) so an index error happens.
+			circles[i].update(screen, delta, camera, grabbedPoints)
+			#deletes the circle if any of it's points are highlighted and backspace or x is pressed.
+			if cooldown == 0 and (keys[pygame.K_BACKSPACE] or keys[pygame.K_x]) and (circles[i].cPoint.highlighted or circles[i].xPoint.highlighted or circles[i].yPoint.highlighted):
+				del circles[i]
 
 	pygame.display.flip()
 	pygame.mouse.get_rel()
