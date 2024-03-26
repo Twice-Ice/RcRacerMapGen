@@ -14,6 +14,7 @@ grabbedPoints = []
 camera = Vector2(0, 0)
 mouseVel = pygame.mouse.get_rel()
 
+globalDrawMode = "lines"
 items = []
 item = "Line"
 itemList = (
@@ -55,15 +56,24 @@ while not doExit:
 	if keys[pygame.K_c] and cooldown == 0:
 		cooldown = CD
 		if item == "Circle":
-			items.append(Circle(Vector2(pygame.mouse.get_pos()) - camera, 25))
+			items.append(Circle(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
 		elif item == "Line":
-			items.append(Line(Vector2(pygame.mouse.get_pos()) - camera, 25))
+			items.append(Line(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
+
 	elif (keys[pygame.K_UP] or keys[pygame.K_w]) and cooldown == 0:
 		cooldown = CD
 		item = itemList[itemList.index(item) + 1 if itemList.index(item) + 1 < len(itemList) else 0]
+
 	elif (keys[pygame.K_DOWN] or keys[pygame.K_s]) and cooldown == 0:
 		cooldown = CD
 		item = itemList[itemList.index(item) - 1]
+
+	elif keys[pygame.K_m] and cooldown == 0:
+		cooldown = CD
+		if globalDrawMode == "points":
+			globalDrawMode = "lines"
+		elif globalDrawMode == "lines":
+			globalDrawMode = "points"
 
 	#moves the camera
 	if pygame.mouse.get_pressed(3)[2]:
@@ -80,7 +90,7 @@ while not doExit:
 		the following line of code would just not go into the next spot in the table if it doesn't exist anymore.
 		'''
 		if i < len(items): # this line prevents the case where a circles is deleted and then i < len(circles) so an index error happens.
-			items[i].update(screen, delta, camera, grabbedPoints, wheel)
+			items[i].update(screen, delta, camera, grabbedPoints, wheel, globalDrawMode)
 			#deletes the circle if any of it's points are highlighted and backspace or x is pressed.
 			if cooldown == 0 and (keys[pygame.K_BACKSPACE] or (keys[pygame.K_LCTRL] and keys[pygame.K_x])) and (items[i].cPoint.highlighted or items[i].p1.highlighted or items[i].p2.highlighted):
 				del items[i]

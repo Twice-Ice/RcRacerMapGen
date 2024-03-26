@@ -12,6 +12,102 @@ def pointOnScreen(pos, camera, size):
 	else:
 		return False
 
+class drawnShape:
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X/2, SCREEN_Y/2), iterations : int = 10, drawColor : tuple = (150, 150, 150), drawMode : str = "points"):
+		self.pos = pos
+		self.iterations = iterations
+		self.drawColor = drawColor
+		self.wheel = 0
+		self.drawMode = drawMode
+
+		self.cooldown = 0
+		self.cPoint = Point(self.pos, (0, 255, 0))
+		self.p1 = Point(self.pos + Vector2(0, 100), (0, 0, 255))
+		self.p2 = Point(self.pos + Vector2(100, 0), (255, 0, 0))
+
+		self.updateLengths()
+
+		self.updateCPoint()
+
+	def update(self, screen, delta, camera, grabbedPoints, wheel, drawMode):
+		if self.cooldown > 0:
+			self.cooldown -= delta
+		else:
+			self.cooldown = 0
+
+		self.wheel = wheel
+		self.drawMode = drawMode
+
+		self.updateLengths()
+
+		keys = pygame.key.get_pressed()
+		if keys[pygame.K_f] and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+			self.cooldown = CD
+			tempPos = self.p2.pos
+			self.p2.setPos(self.p1.pos)
+			self.p1.setPos(tempPos)
+		if keys[pygame.K_x] and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+			self.cooldown = CD
+			tempX = self.p1.pos.x
+			self.p1.setPos(Vector2(self.p2.pos.x, self.p1.pos.y))
+			self.p2.setPos(Vector2(tempX, self.p2.pos.y))
+		elif keys[pygame.K_y] and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+			self.cooldown = CD
+			tempY = self.p1.pos.y
+			self.p1.setPos(Vector2(self.p1.pos.x, self.p2.pos.y))
+			self.p2.setPos(Vector2(self.p2.pos.x, tempY))
+
+		if self.cPoint.grabbed:
+			#updates each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
+			self.p1.pos = self.p1.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+			self.p2.pos = self.p2.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+			#When cPoint is released. This is only called once.
+			if not pygame.mouse.get_pressed(3)[0]:
+				#updates the static position of x and y Points.
+				self.p1.updateStaticPos()
+				self.p2.updateStaticPos()
+		elif self.cPoint.grabbed == False or self.p1.grabbed or self.p2.grabbed:
+			self.updateCPoint()
+		
+		if (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+			self.wheelFunction()
+
+		#draws all points along the quarter circle
+		#has to happen before the points update to avoid inconcistency issues.
+		self.draw(screen, camera)
+
+		#updates cPoint and draws to the screen.
+		self.cPoint.update(screen, camera, grabbedPoints)
+
+		#updates x and y points and draws them to the screen.
+		self.p1.update(screen, camera, grabbedPoints)
+		self.p2.update(screen, camera, grabbedPoints)
+			
+	def updateLengths(self):
+		self.len = Vector2(abs(self.cPoint.pos.x - self.p1.pos.x), abs(self.cPoint.pos.y - self.p1.pos.y))
+
+	def updateCPoint(self):
+		raise SyntaxError("Why tf are you supering this lmao")
+
+	def wheelFunction(self):
+		self.iterations += self.wheel
+		if self.iterations < 1:
+			self.iterations = 1
+
+	def draw(self, screen, camera):
+		if self.drawMode == "points":
+			self.drawPoints(screen, camera)
+		elif self.drawMode == "lines":
+			self.drawLines(screen, camera)
+		else:
+			raise TypeError(f"{self.drawMode} is not a valid drawMode.")
+
+	def drawPoints(self, screen, camera):
+		raise SyntaxError("Why tf are you supering this lmao")
+	
+	def drawLines(self, screen, camera):
+		raise SyntaxError("Why tf are you supering this lmao")
+
 class Point:
 	def __init__(self, pos : Vector2 = Vector2(0, 0), color : tuple = (255, 255, 255)):
 		self.pos = pos
@@ -57,205 +153,91 @@ class Point:
 	def updateStaticPos(self):
 		self.staticPos = self.pos
 
-	def updatePos(self, pos):
+	def setPos(self, pos):
 		self.pos = pos
 		self.updateStaticPos()
 
+class Circle(drawnShape):
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 10, drawColor : tuple = (150, 150, 150), drawMode : str = "points"):
+		super().__init__(pos, iterations, drawColor, drawMode)
 
-class Circle:
-	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 10, drawColor : tuple = (150, 150, 150)):
-		self.pos = pos
-		self.iterations = iterations
-		self.cooldown = 0
+	def updateCPoint(self):
+		self.cPoint.setPos(Vector2(self.p1.pos.x, self.p2.pos.y))
 
-		self.drawColor = drawColor
-
-		self.cPoint = Point(self.pos, (0, 255, 0))
-		self.p1 = Point(self.pos + Vector2(0, 100), (0, 0, 255))
-		self.p2 = Point(self.pos + Vector2(100, 0), (255, 0, 0))
-
-		self.xLen = abs(self.cPoint.pos.x - self.p1.pos.x)
-		self.yLen = abs(self.cPoint.pos.y - self.p2.pos.y)
-
-		self.cPoint.pos = Vector2(self.p1.pos.x, self.p2.pos.y)
-		self.cPoint.updateStaticPos()
-
-	'''
-	So the way that positional stuff is controlled is that for all points other than the mainPoint, their position is just set to the mouse if they are grabbed.
-	When they are released, their position is updated to the world position of the mouse on screen. So, SS -> WS (Screen Space, World Space)
-
-	A similar setup is happening with the mainPoint. If it's grabbed, then it's position is just set to the mouse.
-	However, all other points have their relative positions stored, and then are moved to their relativePos + mainPoint.pos (mainPoint.pos == mouse)
-	When mainPoint is released though, the other point's staticPosition is updated to reflect that which was shown on screen while mainPoint.grabbed == True.
-	'''
-	def update(self, screen, delta, camera, grabbedPoints, wheel):
-		#updates self.cooldown
-		if self.cooldown > 0:
-			self.cooldown -= delta
-		else:
-			self.cooldown = 0
-
-		#updats this in order to account for culling
-		self.xLen = abs(self.cPoint.pos.x - self.p1.pos.x)
-		self.yLen = abs(self.cPoint.pos.y - self.p2.pos.y)
-
-		#flips the p1 and p2 if f is pressed
-		#this MUST happen before the points are updated. Otherwise the points update the next frame after this has happened and it looks weird.
-		keys = pygame.key.get_pressed()
-		if keys[pygame.K_f] and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
-			self.cooldown = CD
-			tempPos = self.p2.pos
-			self.p2.pos = self.p1.pos
-			self.p1.pos = tempPos
-			self.p2.updateStaticPos()
-			self.p1.updateStaticPos()
-
-		if self.cPoint.grabbed:
-			#updates each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
-			self.p1.pos = self.p1.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
-			self.p2.pos = self.p2.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
-			#When cPoint is released. This is only called once.
-			if not pygame.mouse.get_pressed(3)[0]:
-				#updates the static position of x and y Points.
-				self.p1.updateStaticPos()
-				self.p2.updateStaticPos()
-		else:
-			#updating the cPoint based on the p1 and p2 prevents cPoint not updating after it's released.
-			self.cPoint.pos = Vector2(self.p1.pos.x, self.p2.pos.y)
-			self.cPoint.updateStaticPos()
-
-		#updates the cPoint to p1.x and p2.y only if p1 or p2 are grabbed. 
-		if self.p1.grabbed or self.p2.grabbed:
-			self.cPoint.pos = Vector2(self.p1.pos.x, self.p2.pos.y)
-			self.cPoint.updateStaticPos()
-
-		if (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
-			self.iterations += wheel
-			if self.iterations < 1:
-				self.iterations = 1
-
-		#draws all points along the quarter circle
-		#has to happen before the points update to avoid inconcistency issues.
-		self.drawCirclePoints(screen, camera)
-
-		#updates cPoint and draws to the screen.
-		self.cPoint.update(screen, camera, grabbedPoints)
-
-		#updates x and y points and draws them to the screen.
-		self.p1.update(screen, camera, grabbedPoints)
-		self.p2.update(screen, camera, grabbedPoints)
-
-	def drawCirclePoints(self, screen, camera):
+	def drawPoints(self, screen, camera):
 		#relative positions to centerPoint.
 		tempRelXPos = self.p1.pos - self.cPoint.pos
 		tempRelYPos = self.p2.pos - self.cPoint.pos
 
 		if tempRelXPos.y < 0 and tempRelYPos.x > 0: #Q1
 			minDegrees = 270
-			maxDegrees = 360
 		elif tempRelXPos.y < 0 and tempRelYPos.x < 0: #Q2
 			minDegrees = 180
-			maxDegrees = 270
 		elif tempRelXPos.y > 0 and tempRelYPos.x > 0: #Q3
 			minDegrees = 0
-			maxDegrees = 90
 		elif tempRelXPos.y > 0 and tempRelYPos.x < 0: #Q4
 			minDegrees = 90
-			maxDegrees = 180
 		else:
 			minDegrees = 0
-			maxDegrees = 90
 
 		#len of the points relative to eachother.
-		self.xLen = abs(self.p2.pos.x - self.p1.pos.x)
-		self.yLen = abs(self.p1.pos.y - self.p2.pos.y)
+		xLen = abs(self.p2.pos.x - self.p1.pos.x)
+		yLen = abs(self.p1.pos.y - self.p2.pos.y)
 
 		#draws (self.iterations) points along the quarter circle.
 		for i in range(self.iterations + 1):
 			percent = i / self.iterations
 			angle = math.radians(90 * percent + minDegrees)
-			x = math.cos(angle) * self.xLen + self.cPoint.pos.x
-			y = math.sin(angle) * self.yLen + self.cPoint.pos.y
+			x = math.cos(angle) * xLen + self.cPoint.pos.x
+			y = math.sin(angle) * yLen + self.cPoint.pos.y
 
 			if pointOnScreen(Vector2(x, y), camera, 1): #culls points when off screen.
 				pygame.draw.circle(screen, self.drawColor, (x, y) + camera, 1)
 
-class Line:
-	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 10, drawColor : tuple = (150, 150, 150)):
-		self.pos = pos
-		self.iterations = iterations
-		self.cooldown = 0
-		self.drawColor = drawColor
+	def drawLines(self, screen, camera):
+		#relative positions to centerPoint.
+		tempRelXPos = self.p1.pos - self.cPoint.pos
+		tempRelYPos = self.p2.pos - self.cPoint.pos
 
-		self.cPoint = Point(self.pos, (0, 255, 0))
-		self.p1 = Point(self.pos + Vector2(0, 100), (0, 0, 255))
-		self.p2 = Point(self.pos + Vector2(100, 0), (255, 0, 0))
-
-		self.updateLens()
-
-		self.cPoint.updatePos(self.p2.pos + Vector2((self.p1.pos.x - self.p2.pos.x) * .5, (self.p1.pos.y - self.p2.pos.y) * .5))
-
-	def updateLens(self):
-		self.xLen = abs(self.p1.pos.x - self.p2.pos.x)
-		self.yLen = abs(self.p1.pos.y - self.p2.pos.y)
-
-	def update(self, screen, delta, camera, grabbedPoints, wheel):
-		#updates self.cooldown
-		if self.cooldown > 0:
-			self.cooldown -= delta
+		if tempRelXPos.y < 0 and tempRelYPos.x > 0: #Q1
+			minDegrees = 270
+		elif tempRelXPos.y < 0 and tempRelYPos.x < 0: #Q2
+			minDegrees = 180
+		elif tempRelXPos.y > 0 and tempRelYPos.x > 0: #Q3
+			minDegrees = 0
+		elif tempRelXPos.y > 0 and tempRelYPos.x < 0: #Q4
+			minDegrees = 90
 		else:
-			self.cooldown = 0
+			minDegrees = 0
 
-		self.updateLens()
+		#len of the points relative to eachother.
+		xLen = abs(self.p2.pos.x - self.p1.pos.x)
+		yLen = abs(self.p1.pos.y - self.p2.pos.y)
 
-		#flips the p1 and p2 if f is pressed
-		#this MUST happen before the points are updated. Otherwise the points update the next frame after this has happened and it looks weird.
-		keys = pygame.key.get_pressed()
-		if (keys[pygame.K_f] and keys[pygame.K_x]) and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
-			self.cooldown = CD
-			tempX = self.p1.pos.x
-			self.p1.updatePos(Vector2(self.p2.pos.x, self.p1.pos.y))
-			self.p2.updatePos(Vector2(tempX, self.p2.pos.y))
-		elif (keys[pygame.K_f] and keys[pygame.K_y]) and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
-			self.cooldown = CD
-			tempY = self.p1.pos.y
-			self.p1.updatePos(Vector2(self.p1.pos.x, self.p2.pos.y))
-			self.p2.updatePos(Vector2(self.p2.pos.x, tempY))
+		#draws (self.iterations) points along the quarter circle.
+		for i in range(1, self.iterations + 1):
+			percent = i / self.iterations
+			angle = math.radians(90 * percent + minDegrees)
+			x = math.cos(angle) * xLen + self.cPoint.pos.x
+			y = math.sin(angle) * yLen + self.cPoint.pos.y
+			p1 = Vector2(x, y)
+			percent = (i - 1) / self.iterations
+			angle = math.radians(90 * percent + minDegrees)
+			x = math.cos(angle) * xLen + self.cPoint.pos.x
+			y = math.sin(angle) * yLen + self.cPoint.pos.y
+			p2 = Vector2(x, y)
 
-		if self.cPoint.grabbed:
-			#updates each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
-			self.p1.pos = self.p1.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
-			self.p2.pos = self.p2.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
-			#When cPoint is released. This is only called once.
-			if not pygame.mouse.get_pressed(3)[0]:
-				#updates the static position of x and y Points.
-				self.p1.updateStaticPos()
-				self.p2.updateStaticPos()
-		else:
-			#updating the cPoint based on the p1 and p2 prevents cPoint not updating after it's released.
-			self.cPoint.updatePos(self.p2.pos + Vector2((self.p1.pos.x - self.p2.pos.x) * .5, (self.p1.pos.y - self.p2.pos.y) * .5))
+			if pointOnScreen(p1, camera, 1) or pointOnScreen(p2, camera, 1): #culls points when off screen.
+				pygame.draw.line(screen, self.drawColor, p1 + camera, p2 + camera, 1)
+	
+class Line(drawnShape):
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 1, drawColor : tuple = (150, 150, 150), drawMode : str = "points"):
+		super().__init__(pos, iterations, drawColor, drawMode)
 
-		#updates the cPoint to p1.x and p2.y only if p1 or p2 are grabbed. 
-		if self.p1.grabbed or self.p2.grabbed:
-			self.cPoint.updatePos(self.p2.pos + Vector2((self.p1.pos.x - self.p2.pos.x) * .5, (self.p1.pos.y - self.p2.pos.y) * .5))
+	def updateCPoint(self):
+		self.cPoint.setPos(self.p2.pos + Vector2((self.p1.pos.x - self.p2.pos.x) * .5, (self.p1.pos.y - self.p2.pos.y) * .5))
 
-		if (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
-			self.iterations += wheel
-			if self.iterations < 1:
-				self.iterations = 1
-
-		#draws all points along the quarter circle
-		#has to happen before the points update to avoid inconcistency issues.
-		self.drawLinePoints(screen, camera)
-
-		#updates cPoint and draws to the screen.
-		self.cPoint.update(screen, camera, grabbedPoints)
-
-		#updates x and y points and draws them to the screen.
-		self.p1.update(screen, camera, grabbedPoints)
-		self.p2.update(screen, camera, grabbedPoints)
-
-	def drawLinePoints(self, screen, camera):
+	def drawPoints(self, screen, camera):
 		#len of p1 compared to p2
 		len = self.p1.pos - self.p2.pos
 		
@@ -265,5 +247,282 @@ class Line:
 			#points are a percent of len away from p2.
 			pos = self.p2.pos + Vector2(len.x * percent, len.y * percent)
 
-			if pointOnScreen(pos, camera, 1): #culls points when off screen.
-				pygame.draw.circle(screen, self.drawColor, pos + camera, 1)
+			pygame.draw.circle(screen, self.drawColor, pos + camera, 1)
+
+	def drawLines(self, screen, camera):
+		#len of p1 compared to p2
+		len = self.p1.pos - self.p2.pos
+		
+		#draws (self.iterations) points along the line
+		for i in range(1, self.iterations + 1):
+			percentOld = (i-1) / self.iterations
+			percent = i / self.iterations
+			#points are a percent of len away from p2.
+			p1 = self.p2.pos + Vector2(len.x * percent, len.y * percent)
+			p2 = self.p2.pos + Vector2(len.x * percentOld, len.y * percentOld)
+
+			pygame.draw.line(screen, self.drawColor, p1 + camera, p2 + camera, 1)
+
+# class Circle:
+	# def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 10, drawColor : tuple = (150, 150, 150)):
+	# 	self.pos = pos
+	# 	self.iterations = iterations
+	# 	self.cooldown = 0
+
+	# 	self.drawColor = drawColor
+
+	# 	self.cPoint = Point(self.pos, (0, 255, 0))
+	# 	self.p1 = Point(self.pos + Vector2(0, 100), (0, 0, 255))
+	# 	self.p2 = Point(self.pos + Vector2(100, 0), (255, 0, 0))
+
+	# 	self.xLen = abs(self.cPoint.pos.x - self.p1.pos.x)
+	# 	self.yLen = abs(self.cPoint.pos.y - self.p2.pos.y)
+
+	# 	self.cPoint.pos = Vector2(self.p1.pos.x, self.p2.pos.y)
+	# 	self.cPoint.updateStaticPos()
+
+	# '''
+	# So the way that positional stuff is controlled is that for all points other than the mainPoint, their position is just set to the mouse if they are grabbed.
+	# When they are released, their position is updated to the world position of the mouse on screen. So, SS -> WS (Screen Space, World Space)
+
+	# A similar setup is happening with the mainPoint. If it's grabbed, then it's position is just set to the mouse.
+	# However, all other points have their relative positions stored, and then are moved to their relativePos + mainPoint.pos (mainPoint.pos == mouse)
+	# When mainPoint is released though, the other point's staticPosition is updated to reflect that which was shown on screen while mainPoint.grabbed == True.
+	# '''
+	# def update(self, screen, delta, camera, grabbedPoints, wheel):
+	# 	#updates self.cooldown
+	# 	if self.cooldown > 0:
+	# 		self.cooldown -= delta
+	# 	else:
+	# 		self.cooldown = 0
+
+	# 	#updats this in order to account for culling
+	# 	self.xLen = abs(self.cPoint.pos.x - self.p1.pos.x)
+	# 	self.yLen = abs(self.cPoint.pos.y - self.p2.pos.y)
+
+	# 	#flips the p1 and p2 if f is pressed
+	# 	#this MUST happen before the points are updated. Otherwise the points update the next frame after this has happened and it looks weird.
+	# 	keys = pygame.key.get_pressed()
+	# 	if keys[pygame.K_f] and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+	# 		self.cooldown = CD
+	# 		tempPos = self.p2.pos
+	# 		self.p2.pos = self.p1.pos
+	# 		self.p1.pos = tempPos
+	# 		self.p2.updateStaticPos()
+	# 		self.p1.updateStaticPos()
+
+	# 	if self.cPoint.grabbed:
+	# 		#updates each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
+	# 		self.p1.pos = self.p1.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+	# 		self.p2.pos = self.p2.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+	# 		#When cPoint is released. This is only called once.
+	# 		if not pygame.mouse.get_pressed(3)[0]:
+	# 			#updates the static position of x and y Points.
+	# 			self.p1.updateStaticPos()
+	# 			self.p2.updateStaticPos()
+	# 	else:
+	# 		#updating the cPoint based on the p1 and p2 prevents cPoint not updating after it's released.
+	# 		self.cPoint.pos = Vector2(self.p1.pos.x, self.p2.pos.y)
+	# 		self.cPoint.updateStaticPos()
+
+	# 	#updates the cPoint to p1.x and p2.y only if p1 or p2 are grabbed. 
+	# 	if self.p1.grabbed or self.p2.grabbed:
+	# 		self.cPoint.pos = Vector2(self.p1.pos.x, self.p2.pos.y)
+	# 		self.cPoint.updateStaticPos()
+
+	# 	if (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+	# 		self.iterations += wheel
+	# 		if self.iterations < 1:
+	# 			self.iterations = 1
+	# 		if wheel != 0:
+	# 			print(self.iterations)
+
+	# 	#draws all points along the quarter circle
+	# 	#has to happen before the points update to avoid inconcistency issues.
+	# 	self.drawCircleLines(screen, camera)
+
+	# 	#updates cPoint and draws to the screen.
+	# 	self.cPoint.update(screen, camera, grabbedPoints)
+
+	# 	#updates x and y points and draws them to the screen.
+	# 	self.p1.update(screen, camera, grabbedPoints)
+	# 	self.p2.update(screen, camera, grabbedPoints)
+
+	# def drawCirclePoints(self, screen, camera):
+	# 	#relative positions to centerPoint.
+	# 	tempRelXPos = self.p1.pos - self.cPoint.pos
+	# 	tempRelYPos = self.p2.pos - self.cPoint.pos
+
+	# 	if tempRelXPos.y < 0 and tempRelYPos.x > 0: #Q1
+	# 		minDegrees = 270
+	# 		maxDegrees = 360
+	# 	elif tempRelXPos.y < 0 and tempRelYPos.x < 0: #Q2
+	# 		minDegrees = 180
+	# 		maxDegrees = 270
+	# 	elif tempRelXPos.y > 0 and tempRelYPos.x > 0: #Q3
+	# 		minDegrees = 0
+	# 		maxDegrees = 90
+	# 	elif tempRelXPos.y > 0 and tempRelYPos.x < 0: #Q4
+	# 		minDegrees = 90
+	# 		maxDegrees = 180
+	# 	else:
+	# 		minDegrees = 0
+	# 		maxDegrees = 90
+
+	# 	#len of the points relative to eachother.
+	# 	self.xLen = abs(self.p2.pos.x - self.p1.pos.x)
+	# 	self.yLen = abs(self.p1.pos.y - self.p2.pos.y)
+
+	# 	#draws (self.iterations) points along the quarter circle.
+	# 	for i in range(self.iterations + 1):
+	# 		percent = i / self.iterations
+	# 		angle = math.radians(90 * percent + minDegrees)
+	# 		x = math.cos(angle) * self.xLen + self.cPoint.pos.x
+	# 		y = math.sin(angle) * self.yLen + self.cPoint.pos.y
+
+	# 		if pointOnScreen(Vector2(x, y), camera, 1): #culls points when off screen.
+	# 			pygame.draw.circle(screen, self.drawColor, (x, y) + camera, 1)
+
+	# def drawCircleLines(self, screen, camera):
+	# 	#relative positions to centerPoint.
+	# 	tempRelXPos = self.p1.pos - self.cPoint.pos
+	# 	tempRelYPos = self.p2.pos - self.cPoint.pos
+
+	# 	if tempRelXPos.y < 0 and tempRelYPos.x > 0: #Q1
+	# 		minDegrees = 270
+	# 		maxDegrees = 360
+	# 	elif tempRelXPos.y < 0 and tempRelYPos.x < 0: #Q2
+	# 		minDegrees = 180
+	# 		maxDegrees = 270
+	# 	elif tempRelXPos.y > 0 and tempRelYPos.x > 0: #Q3
+	# 		minDegrees = 0
+	# 		maxDegrees = 90
+	# 	elif tempRelXPos.y > 0 and tempRelYPos.x < 0: #Q4
+	# 		minDegrees = 90
+	# 		maxDegrees = 180
+	# 	else:
+	# 		minDegrees = 0
+	# 		maxDegrees = 90
+
+	# 	#len of the points relative to eachother.
+	# 	self.xLen = abs(self.p2.pos.x - self.p1.pos.x)
+	# 	self.yLen = abs(self.p1.pos.y - self.p2.pos.y)
+
+	# 	#draws (self.iterations) points along the quarter circle.
+	# 	for i in range(1, self.iterations + 1):
+	# 		percent = i / self.iterations
+	# 		angle = math.radians(90 * percent + minDegrees)
+	# 		x = math.cos(angle) * self.xLen + self.cPoint.pos.x
+	# 		y = math.sin(angle) * self.yLen + self.cPoint.pos.y
+	# 		p1 = Vector2(x, y)
+	# 		percent = (i - 1) / self.iterations
+	# 		angle = math.radians(90 * percent + minDegrees)
+	# 		x = math.cos(angle) * self.xLen + self.cPoint.pos.x
+	# 		y = math.sin(angle) * self.yLen + self.cPoint.pos.y
+	# 		p2 = Vector2(x, y)
+
+	# 		if pointOnScreen(p1, camera, 1) or pointOnScreen(p2, camera, 1): #culls points when off screen.
+	# 			pygame.draw.line(screen, self.drawColor, p1 + camera, p2 + camera, 1)
+
+# class Line:
+# 	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 1, drawColor : tuple = (150, 150, 150)):
+# 		self.pos = pos
+# 		self.iterations = iterations
+# 		self.cooldown = 0
+# 		self.drawColor = drawColor
+
+# 		self.cPoint = Point(self.pos, (0, 255, 0))
+# 		self.p1 = Point(self.pos + Vector2(0, 100), (0, 0, 255))
+# 		self.p2 = Point(self.pos + Vector2(100, 0), (255, 0, 0))
+
+# 		self.updateLens()
+
+# 		self.cPoint.setPos(self.p2.pos + Vector2((self.p1.pos.x - self.p2.pos.x) * .5, (self.p1.pos.y - self.p2.pos.y) * .5))
+
+# 	def updateLens(self):
+# 		self.xLen = abs(self.p1.pos.x - self.p2.pos.x)
+# 		self.yLen = abs(self.p1.pos.y - self.p2.pos.y)
+
+# 	def update(self, screen, delta, camera, grabbedPoints, wheel):
+# 		#updates self.cooldown
+# 		if self.cooldown > 0:
+# 			self.cooldown -= delta
+# 		else:
+# 			self.cooldown = 0
+
+# 		self.updateLens()
+
+# 		#flips the p1 and p2 if f is pressed
+# 		#this MUST happen before the points are updated. Otherwise the points update the next frame after this has happened and it looks weird.
+# 		keys = pygame.key.get_pressed()
+# 		if (keys[pygame.K_f] and keys[pygame.K_x]) and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+# 			self.cooldown = CD
+# 			tempX = self.p1.pos.x
+# 			self.p1.setPos(Vector2(self.p2.pos.x, self.p1.pos.y))
+# 			self.p2.setPos(Vector2(tempX, self.p2.pos.y))
+# 		elif (keys[pygame.K_f] and keys[pygame.K_y]) and self.cooldown == 0 and (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+# 			self.cooldown = CD
+# 			tempY = self.p1.pos.y
+# 			self.p1.setPos(Vector2(self.p1.pos.x, self.p2.pos.y))
+# 			self.p2.setPos(Vector2(self.p2.pos.x, tempY))
+
+# 		if self.cPoint.grabbed:
+# 			#updates each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
+# 			self.p1.pos = self.p1.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+# 			self.p2.pos = self.p2.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+# 			#When cPoint is released. This is only called once.
+# 			if not pygame.mouse.get_pressed(3)[0]:
+# 				#updates the static position of x and y Points.
+# 				self.p1.updateStaticPos()
+# 				self.p2.updateStaticPos()
+# 		elif (not self.cPoint.grabbed ) or self.p1.grabbed or self.p2.grabbed:
+# 			#updating the cPoint based on the p1 and p2 prevents cPoint not updating after it's released.
+# 			self.cPoint.setPos(self.p2.pos + Vector2((self.p1.pos.x - self.p2.pos.x) * .5, (self.p1.pos.y - self.p2.pos.y) * .5))
+
+# 		# #updates the cPoint to p1.x and p2.y only if p1 or p2 are grabbed. 
+# 		# if self.p1.grabbed or self.p2.grabbed:
+# 		# 	self.cPoint.updatePos(self.p2.pos + Vector2((self.p1.pos.x - self.p2.pos.x) * .5, (self.p1.pos.y - self.p2.pos.y) * .5))
+
+# 		if (self.p1.highlighted or self.p2.highlighted or self.cPoint.highlighted):
+# 			self.iterations += wheel
+# 			if self.iterations < 1:
+# 				self.iterations = 1
+
+# 		#draws all points along the quarter circle
+# 		#has to happen before the points update to avoid inconcistency issues.
+# 		self.drawLineLines(screen, camera)
+
+# 		#updates cPoint and draws to the screen.
+# 		self.cPoint.update(screen, camera, grabbedPoints)
+
+# 		#updates x and y points and draws them to the screen.
+# 		self.p1.update(screen, camera, grabbedPoints)
+# 		self.p2.update(screen, camera, grabbedPoints)
+
+# 	def drawLinePoints(self, screen, camera):
+# 		#len of p1 compared to p2
+# 		len = self.p1.pos - self.p2.pos
+		
+# 		#draws (self.iterations) points along the line
+# 		for i in range(self.iterations + 1):
+# 			percent = i / self.iterations
+# 			#points are a percent of len away from p2.
+# 			pos = self.p2.pos + Vector2(len.x * percent, len.y * percent)
+
+# 			if pointOnScreen(pos, camera, 1): #culls points when off screen.
+# 				pygame.draw.circle(screen, self.drawColor, pos + camera, 1)
+
+# 	def drawLineLines(self, screen, camera):
+# 		#len of p1 compared to p2
+# 		len = self.p1.pos - self.p2.pos
+		
+# 		#draws (self.iterations) points along the line
+# 		for i in range(1, self.iterations + 1):
+# 			percentOld = (i-1) / self.iterations
+# 			percent = i / self.iterations
+# 			#points are a percent of len away from p2.
+# 			p1 = self.p2.pos + Vector2(len.x * percent, len.y * percent)
+# 			p2 = self.p2.pos + Vector2(len.x * percentOld, len.y * percentOld)
+
+# 			if pointOnScreen(p1, camera, 1) or pointOnScreen(p2, camera, 1): #culls points when off screen.
+# 				pygame.draw.line(screen, self.drawColor, p1 + camera, p2 + camera, 1)
