@@ -115,6 +115,17 @@ class drawnShape:
 	def getPoints(self):
 		raise SyntaxError("Why tf are you supering this lmao")
 
+	def saveData(self):
+		points = self.getPoints()
+		saveString = f"{type(self)}, {self.p1.pos}, {self.p2.pos}, {self.iterations}\n"
+		for point in range(len(points)):
+			saveString += f"({points[point].x}, {points[point].y})"
+			if point < len(points) - 1:
+				saveString += ", "
+			elif point == len(points) - 1:
+				saveString += "\n"
+		return saveString
+
 class Point:
 	def __init__(self, pos : Vector2 = Vector2(0, 0), color : tuple = (255, 255, 255)):
 		self.pos = pos
@@ -168,7 +179,7 @@ class Point:
 		self.updateStaticPos()
 
 class Circle(drawnShape):
-	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 10, drawColor : tuple = (150, 150, 150), drawMode : str = "points"):
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 5, drawColor : tuple = (150, 150, 150), drawMode : str = "points"):
 		super().__init__(pos, iterations, drawColor, drawMode)
 		self.curveMult = 0
 
@@ -177,8 +188,10 @@ class Circle(drawnShape):
 
 	def wheelFunction(self):
 		keys = pygame.key.get_pressed()
+		#if LCTRL is pressed, then the wheel function will be treated differently. Otherwise it just does as default.
 		if keys[pygame.K_LCTRL]:
 			speed = 5
+			#LSHIFT makes it so that you change the curveMult slower.
 			if keys[pygame.K_LSHIFT]:
 				speed = 15
 			self.curveMult += self.wheel / speed

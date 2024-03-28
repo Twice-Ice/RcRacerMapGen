@@ -1,7 +1,9 @@
 import pygame
 from pygame import Vector2
 from globals import SCREEN_X, SCREEN_Y, BG_COLOR, FPS, CD
-from lines import Point, Circle, Line
+from shapes import Point, Circle, Line
+import os
+from SaveFile import File
 
 pygame.init
 
@@ -14,8 +16,10 @@ grabbedPoints = []
 camera = Vector2(0, 0)
 mouseVel = pygame.mouse.get_rel()
 
+saveFile = None
+
 globalDrawMode = "lines"
-items = []
+shapes = []
 item = "Line"
 itemList = (
 	"Line",
@@ -51,36 +55,62 @@ while not doExit:
 	else:
 		cooldown = 0
 
-	#creates a new circle at the mouse
+	#gets list of keys pressed this frame
 	keys = pygame.key.get_pressed()
+
+	#creates a new shape at the mouse
 	if keys[pygame.K_c] and cooldown == 0:
 		cooldown = CD
 		if item == "Circle":
-			items.append(Circle(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
+			shapes.append(Circle(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
 		elif item == "Line":
-			items.append(Line(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
+			shapes.append(Line(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
 
+	#changes shape by going up in the list of shapes
 	elif (keys[pygame.K_UP] or keys[pygame.K_w]) and cooldown == 0:
 		cooldown = CD
 		item = itemList[itemList.index(item) + 1 if itemList.index(item) + 1 < len(itemList) else 0]
 
+	#changes shape by going down in the list of shapes
 	elif (keys[pygame.K_DOWN] or keys[pygame.K_s]) and cooldown == 0:
 		cooldown = CD
 		item = itemList[itemList.index(item) - 1]
 
+	#changes draw mode from points to lines or lines to points
 	elif keys[pygame.K_m] and cooldown == 0:
 		cooldown = CD
-		if globalDrawMode == "points":
-			globalDrawMode = "lines"
-		elif globalDrawMode == "lines":
-			globalDrawMode = "points"
+		globalDrawMode = "points" if globalDrawMode == "lines" else "lines"
+
+	#saves the file
+	elif keys[pygame.K_LCTRL] and keys[pygame.K_s]:
+		#if shift is pressed a new file will be made
+		if keys[pygame.K_LSHIFT]:
+			saveFile = File()
+			saveFile.saveFile()
+		#if there isn't already a file for this instance of the application, a new one is created
+		elif saveFile == None:
+			saveFile = File()
+			saveFile.saveFile()
+		#opens the file in write mode
+		with open(saveFile.filePath, "w") as file:
+			#creates a string with all of the shapes, and their individual points defined in the string
+			totalSaveString = ""
+			for shape in range(len(shapes)):
+				totalSaveString += shapes[shape].saveData()
+			#writes this string to the file
+			file.write(totalSaveString)
+
+	#loads a file and sets that as this app instance's saveFile
+	elif keys[pygame.K_LCTRL] and keys[pygame.K_l]:
+		saveFile = File()
+		saveFile.loadFile()
 
 	#moves the camera
 	if pygame.mouse.get_pressed(3)[2]:
 		camera += mouseVel
 	
 	#draws and updates all circles
-	for i in range(0, len(items)):
+	for i in range(0, len(shapes)):
 		'''
 		More detailed for next line:
 		circles = [0, 1, 2]
@@ -89,11 +119,11 @@ while not doExit:
 		circles = [0, 2] but then the max of i is still 2 instead of the now updated 1.
 		the following line of code would just not go into the next spot in the table if it doesn't exist anymore.
 		'''
-		if i < len(items): # this line prevents the case where a circles is deleted and then i < len(circles) so an index error happens.
-			items[i].update(screen, delta, camera, grabbedPoints, wheel, globalDrawMode)
+		if i < len(shapes): # this line prevents the case where a circles is deleted and then i < len(circles) so an index error happens.
+			shapes[i].update(screen, delta, camera, grabbedPoints, wheel, globalDrawMode)
 			#deletes the circle if any of it's points are highlighted and backspace or x is pressed.
-			if cooldown == 0 and (keys[pygame.K_BACKSPACE] or (keys[pygame.K_LCTRL] and keys[pygame.K_x])) and (items[i].cPoint.highlighted or items[i].p1.highlighted or items[i].p2.highlighted):
-				del items[i]
+			if cooldown == 0 and (keys[pygame.K_BACKSPACE] or (keys[pygame.K_LCTRL] and keys[pygame.K_x])) and (shapes[i].cPoint.highlighted or shapes[i].p1.highlighted or shapes[i].p2.highlighted):
+				del shapes[i]
 
 	pygame.display.flip()
 	pygame.mouse.get_rel()
