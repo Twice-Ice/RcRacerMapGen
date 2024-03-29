@@ -105,6 +105,45 @@ while not doExit:
 		saveFile = File()
 		saveFile.loadFile()
 
+		shapesInFile = []
+		with open(saveFile.filePath, "r") as file:
+			for line in file:
+				shapesInFile.append(line.strip())
+		
+		for shape in range(len(shapes)-1, -1, -1):
+			del shapes[shape]
+		
+		for shape in range(0, len(shapesInFile), 2):
+			case = shapesInFile[shape].split("; ")
+			if case[0] == "<class 'shapes.Circle'>":
+				p1 = case[1].split(", ")
+				p1PosX = p1[0][1:]
+				p1PosY = p1[1][:-1]
+				p1Pos = Vector2(int(p1PosX), int(p1PosY))
+
+				p2 = case[2].split(", ")
+				p2PosX = p2[0][1:]
+				p2PosY = p2[1][:-1]
+				p2Pos = Vector2(int(p2PosX), int(p2PosY))
+
+				iterations = int(case[3])
+
+				curveMult = float(case[4])
+				shapes.append(Circle(p1Pos = p1Pos, p2Pos = p2Pos, iterations = iterations, curveMult = curveMult))
+			elif case[0] == "<class 'shapes.Line'>":
+				p1 = case[1].split(", ")
+				p1PosX = p1[0][1:]
+				p1PosY = p1[1][:-1]
+				p1Pos = Vector2(float(p1PosX), float(p1PosY))
+
+				p2 = case[2].split(", ")
+				p2PosX = p2[0][1:]
+				p2PosY = p2[1][:-1]
+				p2Pos = Vector2(float(p2PosX), float(p2PosY))
+
+				iterations = int(case[3])
+				shapes.append(Line(p1Pos = p1Pos, p2Pos = p2Pos, iterations = iterations))
+
 	#moves the camera
 	if pygame.mouse.get_pressed(3)[2]:
 		camera += mouseVel

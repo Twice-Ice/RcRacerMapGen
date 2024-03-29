@@ -13,7 +13,7 @@ def pointOnScreen(pos, camera, size):
 		return False
 
 class drawnShape:
-	def __init__(self, pos : Vector2 = Vector2(SCREEN_X/2, SCREEN_Y/2), iterations : int = 10, drawColor : tuple = (150, 150, 150), drawMode : str = "points"):
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X/2, SCREEN_Y/2), iterations : int = 10, drawColor : tuple = (150, 150, 150), drawMode : str = "points", p1Pos : Vector2 = None, p2Pos : Vector2 = None):
 		self.pos = pos
 		self.iterations = iterations
 		self.drawColor = drawColor
@@ -24,6 +24,11 @@ class drawnShape:
 		self.cPoint = Point(self.pos, (0, 255, 0))
 		self.p1 = Point(self.pos + Vector2(0, 100), (0, 0, 255))
 		self.p2 = Point(self.pos + Vector2(100, 0), (255, 0, 0))
+
+		if p1Pos != None:
+			self.p1.setPos(p1Pos)
+		if p2Pos != None:
+			self.p2.setPos(p2Pos)
 
 		self.updateCPointPos()
 
@@ -117,11 +122,11 @@ class drawnShape:
 
 	def saveData(self):
 		points = self.getPoints()
-		saveString = f"{type(self)}, {self.p1.pos}, {self.p2.pos}, {self.iterations}\n"
+		saveString = f"{type(self)}; {self.p1.pos}; {self.p2.pos}; {self.iterations}\n"
 		for point in range(len(points)):
 			saveString += f"({points[point].x}, {points[point].y})"
 			if point < len(points) - 1:
-				saveString += ", "
+				saveString += "; "
 			elif point == len(points) - 1:
 				saveString += "\n"
 		return saveString
@@ -179,9 +184,20 @@ class Point:
 		self.updateStaticPos()
 
 class Circle(drawnShape):
-	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 5, drawColor : tuple = (150, 150, 150), drawMode : str = "points"):
-		super().__init__(pos, iterations, drawColor, drawMode)
-		self.curveMult = 0
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 5, drawColor : tuple = (150, 150, 150), drawMode : str = "points", p1Pos : Vector2 = None, p2Pos : Vector2 = None, curveMult : float = 0):
+		super().__init__(pos, iterations, drawColor, drawMode, p1Pos, p2Pos)
+		self.curveMult = curveMult
+
+	def saveData(self):
+		points = self.getPoints()
+		saveString = f"{type(self)}; {self.p1.pos}; {self.p2.pos}; {self.iterations}; {self.curveMult}\n"
+		for point in range(len(points)):
+			saveString += f"({points[point].x}, {points[point].y})"
+			if point < len(points) - 1:
+				saveString += "; "
+			elif point == len(points) - 1:
+				saveString += "\n"
+		return saveString
 
 	def updateCPointPos(self):
 		self.cPoint.setPos(Vector2(self.p1.pos.x, self.p2.pos.y))
@@ -235,8 +251,8 @@ class Circle(drawnShape):
 		return returnPoints
 	
 class Line(drawnShape):
-	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 1, drawColor : tuple = (150, 150, 150), drawMode : str = "points"):
-		super().__init__(pos, iterations, drawColor, drawMode)
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 1, drawColor : tuple = (150, 150, 150), drawMode : str = "points", p1Pos : Vector2 = None, p2Pos : Vector2 = None):
+		super().__init__(pos, iterations, drawColor, drawMode, p1Pos, p2Pos)
 
 	def updateCPointPos(self):
 		#half the distance from p2.
