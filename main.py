@@ -1,7 +1,7 @@
 import pygame
 from pygame import Vector2
 from globals import SCREEN_X, SCREEN_Y, BG_COLOR, FPS, CD
-from shapes import Point, Circle, Line
+from shapes import Point, Circle, Line, LockedLine
 import os
 from SaveFile import File
 
@@ -24,6 +24,7 @@ item = "Line"
 itemList = (
 	"Line",
 	"Circle",
+	"LockedLine",
 )
 
 # mainPoint = Point(Vector2(SCREEN_X//2, SCREEN_Y//2), (0, 255, 0))
@@ -63,8 +64,13 @@ while not doExit:
 		cooldown = CD
 		if item == "Circle":
 			shapes.append(Circle(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
+			print("Circle")
 		elif item == "Line":
 			shapes.append(Line(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
+			print("Line")
+		elif item == "LockedLine":
+			shapes.append(LockedLine(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
+			print("LockedLine")
 
 	#changes shape by going up in the list of shapes
 	elif (keys[pygame.K_UP] or keys[pygame.K_w]) and cooldown == 0:

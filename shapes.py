@@ -271,3 +271,27 @@ class Line(drawnShape):
 
 			returnPoints.append(pos)
 		return returnPoints
+	
+class LockedLine(Line):
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 1, drawColor : tuple = (150, 150, 150), drawMode : str = "points", p1Pos : Vector2 = None, p2Pos : Vector2 = None):
+		super().__init__(pos, iterations, drawColor, drawMode, p1Pos, p2Pos)
+		self.angle = random.randint(0, 360)
+		self.p1.setPos(Vector2(math.cos(self.angle) * 50, math.sin(self.angle) * 50) + self.cPoint.pos)
+		self.p2.setPos(Vector2(math.cos(self.angle) * -50, math.sin(self.angle) * -50) + self.cPoint.pos)
+
+	def update(self, screen, delta, camera, grabbedPoints, wheel, drawMode):
+		super().update(screen, delta, camera, grabbedPoints, wheel, drawMode)
+		tempRelDistance = Vector2(pygame.mouse.get_pos()) - (self.cPoint.pos - camera)
+		distance = tempRelDistance.x if abs(tempRelDistance.x) > abs(tempRelDistance.y) else tempRelDistance.y
+		if self.p1.grabbed:
+			pos = Vector2(math.cos(self.angle) * distance, math.sin(self.angle) * distance)
+			self.p1.setPos(pos + self.cPoint.pos)
+			pygame.draw.circle(screen, self.drawColor, pos + self.cPoint.pos, 2)
+		if self.p2.grabbed:
+			pos = Vector2(math.cos(self.angle) * distance, math.sin(self.angle) * distance)
+			self.p2.setPos(pos + self.cPoint.pos)
+			pygame.draw.circle(screen, self.drawColor, pos + self.cPoint.pos, 2)
+
+	def updateCPointPos(self):
+		if not (self.p1.grabbed or self.p2.grabbed):
+			super().updateCPointPos()
