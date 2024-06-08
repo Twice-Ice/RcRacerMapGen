@@ -295,3 +295,110 @@ class LockedLine(Line):
 	def updateCPointPos(self):
 		if not (self.p1.grabbed or self.p2.grabbed):
 			super().updateCPointPos()
+
+class BezierCurve(drawnShape):
+	def __init__(self, pos : Vector2 = Vector2(SCREEN_X//2, SCREEN_Y//2), iterations : int = 10, drawColor : tuple = (150, 150, 150), drawMode: str = "points", p1Pos : Vector2 = None, p2Pos : Vector2 = None, p3Pos : Vector2 = None):
+		super().__init__(pos, iterations, drawColor, drawMode, p1Pos, p2Pos)
+		self.p3 = Point(self.pos + Vector2(60, 60), (100, 255, 255))
+		if p3Pos != None:
+			self.p3.setPos(p3Pos)
+
+	def updateCPointPos(self):
+		self.cPoint.setPos(self.p1.pos - (self.p1.pos - self.p2.pos) * .5)
+
+	def getPoints(self):
+		returnPoints = []
+		
+		line1List = []
+		line1Dist = self.p1.pos - self.p3.pos
+		line2List = []
+		line2Dist = self.p2.pos - self.p3.pos
+
+		for i in range(self.iterations):
+			percent = (1/self.iterations) * i
+			line1List.append(self.p1.pos - line1Dist * percent)
+			line2List.append(self.p2.pos - line2Dist * percent)
+
+		linesList = []
+		for i in range(self.iterations):
+			linesList.append([line1List[i], line2List[len(line2List) - i - 1]])
+
+		for i in range(len(linesList) - 1):
+			dist = linesList[i][1] - linesList[i][0]
+			percent = (1/(len(linesList) - 1)) * i
+			returnPoints.append(linesList[i][0] + dist * percent)
+		
+		returnPoints.append(linesList[len(linesList)-1][1])
+
+		# for i in range(self.iterations):
+		# 	returnPoints.append(line1List[i])
+		# 	returnPoints.append(line2List[len(line2List) - i - 1])
+
+		return returnPoints
+
+
+
+		# #len of p1 compared to p2
+		# len = self.p1.pos - self.p2.pos
+		
+		# returnPoints = []
+		# #defines (#self.iterations) points along the line
+		# for i in range(self.iterations + 1):
+		# 	percent = i / self.iterations
+		# 	#points are a percent of len away from p2.
+		# 	pos = self.p2.pos + Vector2(len.x * percent, len.y * percent)
+
+		# 	returnPoints.append(pos)
+		# return returnPoints
+	
+	def saveData(self):
+		points = self.getPoints()
+		saveString = f"{type(self)}; {self.p1.pos}; {self.p2.pos}; {self.p3.pos}; {self.iterations}\n"
+		for point in range(len(points)):
+			saveString += f"({points[point].x}, {points[point].y})"
+			if point < len(points) - 1:
+				saveString += "; "
+			elif point == len(points) - 1:
+				saveString += "\n"
+		return saveString
+
+	def update(self, screen, delta, camera, grabbedPoints, wheel, drawMode):
+		if self.cooldown > 0:
+			self.cooldown -= delta
+		else:
+			self.cooldown = 0
+
+		self.wheel = wheel
+		self.drawMode = drawMode
+
+		if self.cPoint.grabbed:
+			#updates each of the points to it's relative position before cPoint was grabbed and adds the mouse (or, cPoint.pos)
+			self.p1.pos = self.p1.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+			self.p2.pos = self.p2.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+			self.p3.pos = self.p3.staticPos + (self.cPoint.pos - self.cPoint.staticPos)
+			#When cPoint is released. This is only called once.
+			if not pygame.mouse.get_pressed(3)[0]:
+				#updates the static position of x and y Points.
+				self.p1.updateStaticPos()
+				self.p2.updateStaticPos()
+				self.p3.updateStaticPos()
+		elif self.cPoint.grabbed == False or self.p1.grabbed or self.p2.grabbed or self.p3.grabbed:
+			#updates the cPoint if p1 or p2 is grabbed.
+			self.updateCPointPos()
+		
+		#when scrollwheel is used, the wheel function is called
+		if (self.p1.highlighted or self.p2.highlighted or self.p3.highlighted or self.cPoint.highlighted):
+			if self.wheel != 0:
+				self.wheelFunction()
+
+		#draws all points/lines in the shape based on the self.drawMode.
+		#has to happen before the points update to avoid inconcistency issues.
+		self.draw(screen, camera)
+
+		#updates cPoint and draws to the screen.
+		self.cPoint.update(screen, camera, grabbedPoints)
+
+		#updates x and y points and draws them to the screen.
+		self.p1.update(screen, camera, grabbedPoints)
+		self.p2.update(screen, camera, grabbedPoints)
+		self.p3.update(screen, camera, grabbedPoints)

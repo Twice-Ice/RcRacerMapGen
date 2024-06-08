@@ -1,7 +1,7 @@
 import pygame
 from pygame import Vector2
 from globals import SCREEN_X, SCREEN_Y, BG_COLOR, FPS, CD
-from shapes import Point, Circle, Line, LockedLine
+from shapes import Point, Circle, Line, LockedLine, BezierCurve
 import os
 from SaveFile import File
 
@@ -20,12 +20,13 @@ saveFile = None
 
 globalDrawMode = "lines"
 shapes = []
-item = "Line"
-itemList = (
-	"Line",
-	"Circle",
-	"LockedLine",
-)
+item = "Bezier"
+itemList = {
+	"Bezier" : BezierCurve,
+	"Line" : Line,
+	"Circle" : Circle,
+	"LockedLine" : LockedLine,
+}
 
 # mainPoint = Point(Vector2(SCREEN_X//2, SCREEN_Y//2), (0, 255, 0))
 # p1 = Point(Vector2(mainPoint.pos.x + 100, mainPoint.pos.y), (255, 0, 0))
@@ -62,26 +63,27 @@ while not doExit:
 	#creates a new shape at the mouse
 	if keys[pygame.K_c] and cooldown == 0:
 		cooldown = CD
-		if item == "Circle":
-			shapes.append(Circle(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
-			print("Circle")
-		elif item == "Line":
-			shapes.append(Line(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
-			print("Line")
-		elif item == "LockedLine":
-			shapes.append(LockedLine(Vector2(pygame.mouse.get_pos()) - camera, drawMode = globalDrawMode))
-			print("LockedLine")
+		shapes.append(itemList[item](pygame.mouse.get_pos() - camera, drawMode = globalDrawMode))
+		print()
 
 	#changes shape by going up in the list of shapes
 	elif (keys[pygame.K_UP] or keys[pygame.K_w]) and cooldown == 0:
 		cooldown = CD
-		item = itemList[itemList.index(item) + 1 if itemList.index(item) + 1 < len(itemList) else 0]
+		index = list(itemList.keys()).index(item)
+		index = index + 1 if index + 1 < len(itemList) else 0
+
+		item = list(itemList.keys())[index]
+		print(item)
 
 	#changes shape by going down in the list of shapes
-	elif (keys[pygame.K_DOWN] or keys[pygame.K_s]) and cooldown == 0:
+	elif not keys[pygame.K_LCTRL] and (keys[pygame.K_DOWN] or keys[pygame.K_s]) and cooldown == 0:
 		cooldown = CD
-		item = itemList[itemList.index(item) - 1]
+		index = list(itemList.keys()).index(item)
+		index = index - 1 if index > 0 else len(itemList)
 
+		item = list(itemList.keys())[index]
+		print(item)
+		
 	#changes draw mode from points to lines or lines to points
 	elif keys[pygame.K_m] and cooldown == 0:
 		cooldown = CD
@@ -149,6 +151,24 @@ while not doExit:
 
 				iterations = int(case[3])
 				shapes.append(Line(p1Pos = p1Pos, p2Pos = p2Pos, iterations = iterations))
+			elif case[0] == "<class 'shapes.BezierCurve'>":
+				p1 = case[1].split(", ")
+				p1PosX = p1[0][1:]
+				p1PosY = p1[1][:-1]
+				p1Pos = Vector2(float(p1PosX), float(p1PosY))
+
+				p2 = case[2].split(", ")
+				p2PosX = p2[0][1:]
+				p2PosY = p2[1][:-1]
+				p2Pos = Vector2(float(p2PosX), float(p2PosY))
+
+				p3 = case[3].split(", ")
+				p3PosX = p3[0][1:]
+				p3PosY = p3[1][:-1]
+				p3Pos = Vector2(float(p3PosX), float(p3PosY))
+
+				iterations = int(case[4])
+				shapes.append(BezierCurve(p1Pos = p1Pos, p2Pos = p2Pos, p3Pos = p3Pos, iterations = iterations))
 
 	#moves the camera
 	if pygame.mouse.get_pressed(3)[2]:
